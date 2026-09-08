@@ -12,20 +12,22 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="POS GNP">
   <style>
-    html, body { margin:0; padding:0; height:100%; background:#121212; overflow:hidden; }
-    #splash { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; background:#121212; z-index:10; transition:opacity .3s ease; }
-    /* ✅ QUAN TRỌNG: khi ẩn phải cho chạm xuyên qua */
-    #splash.an { opacity:0; pointer-events:none; }
-    .loader { border:4px solid #333; border-top:4px solid #1a73e8; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite; }
-    @keyframes spin { to { transform:rotate(360deg); } }
-    iframe { position:fixed; inset:0; width:100%; height:100%; border:0; }
-    #install-banner { position:fixed; left:12px; right:12px; bottom:12px; background:#1a73e8; color:#fff; padding:12px; border-radius:10px; display:none; align-items:center; justify-content:space-between; z-index:20; }
+    html,body{margin:0;padding:0;height:100%;background:#121212;overflow:hidden}
+    #splash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;background:#121212;z-index:10;transition:opacity .3s ease;cursor:pointer}
+    #splash.an{opacity:0;pointer-events:none}
+    .loader{border:4px solid #333;border-top:4px solid #1a73e8;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #splashTip{margin-top:18px;font-size:12px;color:#8ab4f8;display:none;font-weight:700}
+    iframe{position:fixed;inset:0;width:100%;height:100%;border:0}
+    #install-banner{position:fixed;left:12px;right:12px;bottom:12px;background:#1a73e8;color:#fff;padding:12px;border-radius:10px;display:none;align-items:center;justify-content:space-between;z-index:20}
+    #btnReload{position:fixed;top:8px;right:8px;z-index:25;width:38px;height:38px;border-radius:50%;border:none;background:rgba(26,115,232,.9);color:#fff;font-size:16px;display:none;align-items:center;justify-content:center;cursor:pointer}
   </style>
 </head>
 <body>
   <div id="splash">
     <div class="loader"></div>
-    <p style="margin-top:16px;">Đang mở POS GNP...</p>
+    <p style="margin-top:16px">Đang mở POS GNP...</p>
+    <div id="splashTip">⏳ Mạng chậm? CHẠM VÀO ĐÂY ĐỂ VÀO THẲNG</div>
   </div>
 
   <iframe id="app-frame"
@@ -33,33 +35,58 @@
           allow="clipboard-read; clipboard-write; geolocation; camera; microphone"
           title="POS GNP"></iframe>
 
+  <button id="btnReload" title="Tải lại POS">🔄</button>
+
   <div id="install-banner">
     <span>Cài POS GNP lên máy?</span>
-    <button id="install-btn" style="background:white;color:#1a73e8;border:none;padding:6px 12px;border-radius:6px;">Cài đặt</button>
+    <button id="install-btn" style="background:white;color:#1a73e8;border:none;padding:6px 12px;border-radius:6px;font-weight:700">Cài đặt</button>
   </div>
 
   <script>
+    var GAS_URL = 'https://script.google.com/macros/s/AKfycbzQR6a-W3CfVJ2F94_G1i-XmChqbAxtS3lbgWWSfXm5J5vy0bTVQRHdJDTu6zauR9Y6wA/exec';
     var splash = document.getElementById('splash');
+    var tip    = document.getElementById('splashTip');
     var frame  = document.getElementById('app-frame');
+    var daAn   = false;
 
-    // ✅ Ẩn splash ĐÚNG CÁCH: trong suốt + cho chạm xuyên + gỡ khỏi DOM
+    // ✅ Ẩn splash: trong suốt + cho chạm xuyên + gỡ khỏi DOM
     function anSplash(){
+      if (daAn) return; daAn = true;
       splash.classList.add('an');
-      setTimeout(function(){ if (splash.parentNode) splash.parentNode.removeChild(splash); }, 500);
-    }
-    frame.addEventListener('load', function(){ setTimeout(anSplash, 600); });
-    setTimeout(anSplash, 6000); // phòng iframe load chậm
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./service-worker.js');
+      setTimeout(function(){ if (splash.parentNode) splash.parentNode.removeChild(splash); }, 400);
+      document.getElementById('btnReload').style.display = 'flex';
     }
 
-    var deferredPrompt;
+    // 1) iframe load xong → tự vào
+    frame.addEventListener('load', function(){ setTimeout(anSplash, 500); });
+    // 2) Chạm vào splash → vào thẳng không cần chờ
+    splash.addEventListener('click', anSplash);
+    // 3) 5 giây chưa xong → hiện dòng mẹo "chạm để vào"
+    setTimeout(function(){ if (!daAn) tip.style.display = 'block'; }, 5000);
+    // 4) Chốt chặn cuối: 9 giây tự vào dù thế nào
+    setTimeout(anSplash, 9000);
+
+    // Nút 🔄 tải lại POS khi kẹt
+    document.getElementById('btnReload').addEventListener('click', function(){
+      daAn = false;
+      splash.classList.remove('an');
+      document.body.appendChild(splash);
+      tip.style.display = 'none';
+      frame.src = GAS_URL;
+    });
+
+    // Service worker
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');
+
+    // Banner cài đặt: TỰ hiện khi Chrome cho phép
+    var deferredPrompt = null;
     var banner = document.getElementById('install-banner');
+    var daCai = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
     window.addEventListener('beforeinstallprompt', function(e){
       e.preventDefault();
+      if (daCai) return;               // đã cài rồi thì khỏi rủ nữa
       deferredPrompt = e;
-      banner.style.display = 'flex';
+      banner.style.display = 'flex';   // ✅ TỰ ĐỘNG hiện, không cần bấm gì
     });
     document.getElementById('install-btn').addEventListener('click', async function(){
       banner.style.display = 'none';
@@ -67,7 +94,9 @@
       deferredPrompt.prompt();
       await deferredPrompt.userChoice;
       deferredPrompt = null;
+      daCai = true;
     });
+    window.addEventListener('appinstalled', function(){ banner.style.display = 'none'; daCai = true; });
   </script>
 </body>
 </html>
