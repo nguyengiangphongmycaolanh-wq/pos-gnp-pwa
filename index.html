@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POS GNP</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#1a73e8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #121212; overflow: hidden; }
+    #splash { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
+    .loader { border: 4px solid #333; border-top: 4px solid #1a73e8; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    iframe { width: 100%; height: 100%; border: 0; }
+    #install-banner { position: fixed; left: 12px; right: 12px; bottom: 12px; background: #1a73e8; color: white; padding: 12px; border-radius: 10px; display: none; }
+  </style>
+</head>
+<body>
+  <div id="splash">
+    <div class="loader"></div>
+    <p style="margin-top:16px;">Đang mở POS GNP...</p>
+  </div>
+
+  <!-- THAY LINK DƯỚI ĐÂY -->
+  <iframe id="app-frame" src="https://script.google.com/macros/s/AKfycbzQR6a-W3CfVJ2F94_G1i-XmChqbAxtS3lbgWWSfXm5J5vy0bTVQRHdJDTu6zauR9Y6wA/exec"></iframe>
+
+  <div id="install-banner">
+    <span>Cài POS GNP lên máy?</span>
+    <button id="install-btn" style="background:white;color:#1a73e8;border:none;padding:6px 12px;border-radius:6px;">Cài đặt</button>
+  </div>
+
+  <script>
+    setTimeout(() => document.getElementById('splash').style.opacity = '0', 3000);
+    
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js');
+    }
+
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('install-banner').style.display = 'block';
+    });
+
+    document.getElementById('install-btn').addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      document.getElementById('install-banner').style.display = 'none';
+    });
+  </script>
+</body>
+</html>
