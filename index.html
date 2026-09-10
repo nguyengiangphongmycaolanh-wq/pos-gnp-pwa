@@ -4,13 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>POS GNP</title>
-  <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#1a73e8">
-  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081559.png">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081559.png">
+  
+  <!-- ✅ PWA META TAGS (đúng thứ tự) -->
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="POS GNP">
+  <meta name="theme-color" content="#1a73e8">
+  
+  <!-- Manifest & Icons -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081559.png">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081559.png">
+  
   <style>
     html,body{margin:0;padding:0;height:100%;background:#121212;overflow:hidden}
     #splash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;background:#121212;z-index:10;transition:opacity .3s ease;cursor:pointer}
@@ -20,9 +26,9 @@
     #splashTip{margin-top:18px;font-size:12px;color:#8ab4f8;display:none;font-weight:700}
     #splashHint{margin-top:6px;font-size:11px;color:#9aa0a6}
     iframe{position:fixed;inset:0;width:100%;height:100%;border:0}
-#btnReload,#btnFull{position:fixed;left:26px;z-index:25;width:40px;height:40px;border-radius:50%;border:none;background:rgba(26,115,232,.9);color:#fff;font-size:16px;display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.4)}
-#btnReload{bottom:calc(144px + env(safe-area-inset-bottom))}
-#btnFull{bottom:calc(192px + env(safe-area-inset-bottom))}
+    #btnReload,#btnFull{position:fixed;left:26px;z-index:25;width:40px;height:40px;border-radius:50%;border:none;background:rgba(26,115,232,.9);color:#fff;font-size:16px;display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.4)}
+    #btnReload{bottom:calc(144px + env(safe-area-inset-bottom))}
+    #btnFull{bottom:calc(192px + env(safe-area-inset-bottom))}
   </style>
 </head>
 <body>
@@ -48,33 +54,26 @@
     var frame  = document.getElementById('app-frame');
     var daAn   = false;
 
-    // Yêu cầu trình duyệt vào chế độ toàn màn hình (bắt buộc phải gọi trong 1 hành động chạm của người dùng)
     function tryFullscreen(){
       var el = document.documentElement;
       var req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
       if (req) { try { req.call(el); } catch(e) {} }
     }
 
-    // Ẩn splash: trong suốt + cho chạm xuyên + gỡ khỏi DOM
     function anSplash(fromUserTap){
       if (daAn) return; daAn = true;
-      if (fromUserTap) tryFullscreen(); // chỉ gọi được fullscreen khi có thao tác chạm thật
+      if (fromUserTap) tryFullscreen();
       splash.classList.add('an');
       setTimeout(function(){ if (splash.parentNode) splash.parentNode.removeChild(splash); }, 400);
       document.getElementById('btnReload').style.display = 'flex';
       document.getElementById('btnFull').style.display = 'flex';
     }
 
-    // 1) iframe load xong → tự vào (không có thao tác chạm nên không ép được fullscreen)
     frame.addEventListener('load', function(){ setTimeout(function(){ anSplash(false); }, 500); });
-    // 2) Chạm vào splash → vào thẳng NGAY + tự vào toàn màn hình luôn, không cần qua bước "Cài đặt"
     splash.addEventListener('click', function(){ anSplash(true); });
-    // 3) 5 giây chưa xong → hiện dòng mẹo "chạm để vào"
     setTimeout(function(){ if (!daAn) tip.style.display = 'block'; }, 5000);
-    // 4) Chốt chặn cuối: 9 giây tự vào dù thế nào
     setTimeout(function(){ anSplash(false); }, 9000);
 
-    // Nút 🔄 tải lại POS khi kẹt
     document.getElementById('btnReload').addEventListener('click', function(){
       daAn = false;
       splash.classList.remove('an');
@@ -83,7 +82,6 @@
       frame.src = GAS_URL;
     });
 
-    // Nút ⛶ bật toàn màn hình bất kỳ lúc nào (không bắt buộc, không chặn luồng dùng chính)
     document.getElementById('btnFull').addEventListener('click', function(){
       if (document.fullscreenElement || document.webkitFullscreenElement) {
         (document.exitFullscreen || document.webkitExitFullscreen).call(document);
@@ -92,15 +90,12 @@
       }
     });
 
-    // Service worker
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js');
 
-    // Cài đặt PWA lên màn hình chính: vẫn hỗ trợ nếu người dùng muốn, nhưng
-    // KHÔNG còn banner che màn hình / KHÔNG bắt buộc phải cài mới dùng được full.
     var deferredPrompt = null;
     window.addEventListener('beforeinstallprompt', function(e){
       e.preventDefault();
-      deferredPrompt = e; // giữ lại, có thể gắn vào một nút cài đặt tuỳ chọn ở nơi khác nếu cần
+      deferredPrompt = e;
     });
   </script>
 </body>
